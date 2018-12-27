@@ -1,6 +1,6 @@
 FROM node:8.12.0-alpine
 
-COPY ./* /app
+COPY . /app
 
 RUN cd /app && \
     npm install && \
