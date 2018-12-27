@@ -1,0 +1,25 @@
+{
+  "name": "veracross-monitor",
+  "version": "1.0.0",
+  "description": "Simple script the check for problem assignments in veracross and send a notification through pushover.",
+  "repository": "bitbucket",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "fs-extra": "^4.0.2",
+    "lodash": "^4.17.4",
+    "mongodb": "^2.2.33",
+    "node-cron": "^2.0.3",
+    "pushover-notifications": "^0.2.4",
+    "request": "^2.83.0",
+    "request-promise": "^4.2.2",
+    "request-promise-native": "^1.0.5",
+    "winston": "^3.1.0"
+  },
+  "devDependencies": {}
+}
