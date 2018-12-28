@@ -227,7 +227,6 @@ class DataProcessor {
 
     async syncAll() {
         await this.syncLogin();
-        await this.syncStudents();
 
         for (const student of await this.syncStudents()) {
             logger.info('Syncing assignments for student: %s', student.name);
@@ -278,8 +277,7 @@ class DataProcessor {
     }
 }
 
-async function run() {
-  logger.info('Running application.')
+async function initProcessor() {
   const processor = new DataProcessor(
     process.env.PORTAL_TENANT_ID,
     process.env.PORTAL_USERNAME,
@@ -307,31 +305,35 @@ async function run() {
     }
   }
 
+  return processor;
+}
+
+async function run() {
+  logger.info('Running application.')
+
+  const processor = await initProcessor();
   await processor.syncAll();
   await processor.notifyProblems();
   logger.info('Application run complete.');
 }
 
 async function main() {
-  const processor = new DataProcessor(
-    process.env.PORTAL_TENANT_ID,
-    process.env.PORTAL_USERNAME,
-    process.env.PORTAL_PASSWORD,
-    process.env.MONGO_URL,
-    process.env.PUSHOVER_KEY,
-    process.env.PUSHOVER_APP_TOKEN,
-  );
-
-  if (!process.env['SKIP_START']) {
-    logger.info('Scheduling run.')
-    cron.schedule('0 5,17,21 * * *', async function() {
-      try {
-        await run();
-      } catch (err) {
-        logger.error('%s', err);
-      }
-    });
+  if (process.env['SKIP_START']) {
+    return;
   }
+
+  logger.info('Initializing processor to test this all will work.');
+  await initProcessor();
+  logger.info('Processor initialization test successful.');
+
+  logger.info('Scheduling run.')
+  cron.schedule('0 5,17,21 * * *', async function() {
+    try {
+      await run();
+    } catch (err) {
+      logger.error('%s', err);
+    }
+  });
 }
 
 main();
