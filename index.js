@@ -324,13 +324,13 @@ async function main() {
 
   if (!process.env['SKIP_START']) {
     logger.info('Scheduling run.')
-//    cron.schedule('0 5,17,21 * * *', async function() {
+    cron.schedule('0 5,17,21 * * *', async function() {
       try {
         await run();
       } catch (err) {
         logger.error('%s', err);
       }
-//    });
+    });
   }
 }
 
