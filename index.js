@@ -1,17 +1,17 @@
 "use strict";
-const crypto = require('crypto');
-const fs = require('fs-extra');
-const path = require('path');
 const rp = require('request-promise');
 const cheerio = require('cheerio');
-const _ = require('lodash');
 const pushover = require('pushover-notifications');
 const MongoClient = require('mongodb').MongoClient;
 const cron = require('node-cron');
 const winston = require('winston');
 
+const debugModeStr = process.env['DEBUG'];
+const isDebugMode = !!debugModeStr && (debugModeStr === '1' || debugModeStr === 'true');
+const logLevel = isDebugMode ? 'debug' : 'info';
+
 const logger = winston.createLogger({
-  level: 'info',
+  level: logLevel,
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.splat(),
@@ -25,6 +25,7 @@ const logger = winston.createLogger({
 });
 
 logger.info('Node Version: %s', process.version);
+logger.info('Log Level: %s', logLevel);
 
 class Scraper {
     constructor(baseUrl) {
@@ -37,20 +38,12 @@ class Scraper {
             options.uri = this.baseUrl + options.uri;
         }
 
-        const fileName = crypto.createHash('md5').update(options.uri).digest('hex');
-        const inputFilePath = path.resolve(path.join('.', 'dist/cache', fileName + '_input'));
-        const outputFilePath = path.resolve(path.join('.', 'dist/cache', fileName + '_output'));
-
-        // fs.ensureDirSync(path.dirname(outputFilePath));
-
-        logger.info('Running request');
-        logger.info('Input file: %s', inputFilePath);
-        logger.info('Output file: %s', outputFilePath);
-
-        // fs.writeFileSync(inputFilePath, JSON.stringify(options, undefined, 2));
+        logger.info('Running request.');
+        logger.debug('%s', JSON.stringify(options, undefined, 2));
 
         const resultStr = await rp(options);
-        // fs.writeFileSync(outputFilePath, resultStr);
+        logger.info('Received response.');
+        logger.debug('%s', resultStr);
         return resultStr;
     }
 
