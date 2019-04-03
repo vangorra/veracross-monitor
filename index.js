@@ -137,14 +137,15 @@ class DataProcessor {
 
     async syncLogin() {
         logger.info('Logging in.');
+	const loginBaseUrl = 'https://accounts.veracross.com'
 
         // Logging in.
-        const loginPage = await this.scraper.htmlGet('/');
+        const loginPage = await this.scraper.htmlGet(loginBaseUrl + '/' + this.portalTenantId + '/portals/login');
         const loginForm = await this.scraper.getFormData(loginPage, 'form');
         loginForm.data.username = this.portalUsername;
         loginForm.data.password = this.portalPassword;
 
-        const sessionPage = await this.scraper.htmlPost(loginForm.action, loginForm.data);
+        const sessionPage = await this.scraper.htmlPost(loginBaseUrl + loginForm.action, loginForm.data);
         const sessionForm = await this.scraper.getFormData(sessionPage, 'form');
         await this.scraper.htmlPost(sessionForm.action, sessionForm.data);
     }
