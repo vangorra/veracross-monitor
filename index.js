@@ -106,14 +106,13 @@ class Scraper {
 }
 
 class DataProcessor {
-    constructor(portalTenantId, portalUsername, portalPassword, mongoUrl, pushOverKey, pushOverAppToken) {
+    constructor(portalTenantId, portalUsername, portalPassword, mongoUrl, pushoverClient) {
         this.baseUrl = 'https://portals.veracross.com';
         this.portalTenantId = portalTenantId;
         this.portalUsername = portalUsername;
         this.portalPassword = portalPassword;
         this.mongoUrl = mongoUrl;
-        this.pushOverKey = pushOverKey;
-        this.pushOverAppToken = pushOverAppToken;
+        this.pushoverClient = pushoverClient;
     }
 
     async init() {
@@ -122,17 +121,11 @@ class DataProcessor {
         if (!this.portalUsername) throw new Error('portalUsername is not set.');
         if (!this.portalPassword) throw new Error('portalPassword is not set.');
         if (!this.mongoUrl) throw new Error('mongoUrl is not set.');
-        if (!this.pushOverKey) throw new Error('pushOverKey is not set.');
-        if (!this.pushOverAppToken) throw new Error('pushOverAppToken is not set.');
 
         this.scraper = new Scraper(this.baseUrl + '/' + this.portalTenantId);
         this.mongoDb = await MongoClient.connect(this.mongoUrl);
         this.studentCollection = this.mongoDb.collection('Student');
         this.scoresCollection = this.mongoDb.collection('AssignmentScore');
-        this.pushoverClient = new pushover({
-            user: this.pushOverKey,
-            token: this.pushOverAppToken,
-        });
     }
 
     async syncLogin() {
@@ -278,14 +271,13 @@ class DataProcessor {
     }
 }
 
-async function initProcessor() {
+async function initProcessor(pushoverClient) {
   const processor = new DataProcessor(
     process.env.PORTAL_TENANT_ID,
     process.env.PORTAL_USERNAME,
     process.env.PORTAL_PASSWORD,
     process.env.MONGO_URL,
-    process.env.PUSHOVER_KEY,
-    process.env.PUSHOVER_APP_TOKEN,
+    pushoverClient,
   );
 
   // Attempt to connect to services.
@@ -309,13 +301,26 @@ async function initProcessor() {
   return processor;
 }
 
-async function run() {
+async function run(pushoverClient) {
   logger.info('Running application.')
 
-  const processor = await initProcessor();
+  const processor = await initProcessor(pushoverClient);
   await processor.syncAll();
   await processor.notifyProblems();
   logger.info('Application run complete.');
+}
+
+async function runFailureNotify(pushoverClient, title, message) {
+  const msgObj = {
+    title,
+    message
+  };
+
+  logger.info('Sending pushover message: %s', message);
+  await new Promise((res, rej) => pushoverClient.send(
+    msgObj,
+    (e) => e ? rej(e) : res()
+  ));
 }
 
 async function main() {
@@ -323,16 +328,22 @@ async function main() {
     return;
   }
 
+  const pushoverClient = new pushover({
+      user: process.env.PUSHOVER_KEY,
+      token: process.env.PUSHOVER_APP_TOKEN,
+  });
+
   logger.info('Initializing processor to test this all will work.');
-  await initProcessor();
+  await initProcessor(pushoverClient);
   logger.info('Processor initialization test successful.');
 
   logger.info('Scheduling run.')
   cron.schedule('0 5,17,21 * * *', async function() {
     try {
-      await run();
+      await run(pushoverClient);
     } catch (err) {
       logger.error('%s', err);
+      runFailureNotify(pushoverClient, 'Failed to run veracross monitor.', err + '')
     }
   });
 }
